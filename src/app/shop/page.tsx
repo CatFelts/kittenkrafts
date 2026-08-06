@@ -3,21 +3,26 @@ import Link from "next/link";
 
 import { ProductCard } from "@/components/ProductCard";
 import { withStock } from "@/lib/inventory";
-import { CATEGORY_LABELS, type Category, listProducts } from "@/lib/products";
+import {
+  CATEGORIES,
+  CATEGORY_KEYS,
+  type Category,
+  listProducts,
+} from "@/lib/products";
 
 export const metadata: Metadata = { title: "Shop" };
 
 /** Stock changes when things sell, so never serve this from a static cache. */
 export const dynamic = "force-dynamic";
 
+/** Built from CATEGORIES, so a new category gets a filter chip for free. */
 const FILTERS: { key: Category | "all"; label: string }[] = [
   { key: "all", label: "Everything" },
-  { key: "yarn", label: CATEGORY_LABELS.yarn },
-  { key: "bags", label: CATEGORY_LABELS.bags },
+  ...CATEGORY_KEYS.map((key) => ({ key, label: CATEGORIES[key].label })),
 ];
 
 function isCategory(value: string | undefined): value is Category {
-  return value === "yarn" || value === "bags";
+  return value !== undefined && value in CATEGORIES;
 }
 
 export default async function ShopPage({
@@ -36,7 +41,7 @@ export default async function ShopPage({
   return (
     <div className="mx-auto max-w-5xl px-5 py-12">
       <h1 className="text-3xl">
-        {active ? CATEGORY_LABELS[active] : "The whole shop"}
+        {active ? CATEGORIES[active].label : "The whole shop"}
       </h1>
       <p className="mt-2 text-muted">
         {items.filter((i) => !i.soldOut).length} available right now.

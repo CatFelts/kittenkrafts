@@ -1,12 +1,16 @@
 import Link from "next/link";
 
 import { cartCount } from "@/lib/cart";
+import { CATEGORIES, CATEGORY_KEYS } from "@/lib/products";
 import { site } from "@/lib/site";
 
+/** Category links are generated, so a new category appears here automatically. */
 const NAV = [
   { href: "/shop", label: "Shop" },
-  { href: "/shop?category=yarn", label: "Yarn" },
-  { href: "/shop?category=bags", label: "Bags" },
+  ...CATEGORY_KEYS.map((key) => ({
+    href: `/shop?category=${key}`,
+    label: CATEGORIES[key].short,
+  })),
   { href: "/about", label: "About" },
 ];
 

@@ -1,0 +1,11 @@
+Product photos go here.
+
+Drop a file in this folder and point a product's `image` at it:
+
+    public/images/storm-cloud.jpg   ->   image: "/images/storm-cloud.jpg"
+
+Anything under public/ is served from the site root, so the "public/" part
+disappears from the URL. Square, ~1200x1200, under ~300KB each works well.
+
+Leave image: null and you get a generated placeholder tile instead, so the
+site looks finished before you have photographed anything.

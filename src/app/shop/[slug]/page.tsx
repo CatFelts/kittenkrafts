@@ -6,7 +6,7 @@ import { addToCart } from "@/app/actions/cart";
 import { ProductImage } from "@/components/Placeholder";
 import { stockFor } from "@/lib/inventory";
 import { formatCents } from "@/lib/money";
-import { CATEGORY_LABELS, getProduct } from "@/lib/products";
+import { CATEGORIES, getProduct } from "@/lib/products";
 import { site } from "@/lib/site";
 
 type Props = {
@@ -61,7 +61,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
 
         <div>
           <p className="text-sm uppercase tracking-[0.15em] text-muted">
-            {CATEGORY_LABELS[product.category]}
+            {CATEGORIES[product.category].label}
           </p>
           <h1 className="mt-2 text-3xl">{product.name}</h1>
           <p className="mt-3 text-2xl text-clay">

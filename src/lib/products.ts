@@ -12,7 +12,29 @@
  * you only edit it if you actually spin/sew more.
  */
 
-export type Category = "yarn" | "bags";
+/**
+ * THE CATEGORIES. Add one here and the whole site follows: the shop filters,
+ * the header nav, and the label on each product page all read from this object.
+ * Nothing else needs editing.
+ *
+ *   `label` — the full name, used as page headings and filter chips
+ *   `short` — the compact name, used in the header nav where space is tight
+ */
+export const CATEGORIES = {
+  yarn: { label: "Handspun Yarn", short: "Yarn" },
+  knits: { label: "Finished Knits", short: "Knits" },
+  bags: { label: "Sewn Bags", short: "Bags" },
+} as const;
+
+/**
+ * Derived from CATEGORIES rather than written out by hand, so the two can never
+ * drift apart. Setting `category: "hats"` on a product is now a compile error
+ * until "hats" exists above.
+ */
+export type Category = keyof typeof CATEGORIES;
+
+/** Ordered list, for building nav and filter UI. */
+export const CATEGORY_KEYS = Object.keys(CATEGORIES) as Category[];
 
 export type Product = {
   /** URL slug and primary key. Must be unique and never change once sold. */
@@ -35,11 +57,6 @@ export type Product = {
   image: string | null;
   /** Show on the homepage. */
   featured?: boolean;
-};
-
-export const CATEGORY_LABELS: Record<Category, string> = {
-  yarn: "Handspun Yarn",
-  bags: "Sewn Bags",
 };
 
 export const products: Product[] = [
@@ -118,6 +135,43 @@ export const products: Product[] = [
       Skein: "3.5 oz (100 g)",
       Ply: "2-ply",
       Care: "Hand wash cool, dry flat",
+    },
+    image: null,
+  },
+  {
+    slug: "fishermans-rib-beanie",
+    name: "Fisherman's Rib Beanie",
+    category: "knits",
+    priceCents: 5400,
+    stock: 2,
+    blurb: "Deep-ribbed beanie knit from my own handspun, with a folded brim.",
+    description:
+      "Knit from a skein of the Hearth single, which means the colour shifts run around the hat rather than pooling in patches. Fisherman's rib makes a thick, squashy fabric that blocks wind properly. The brim is doubled so it sits over the ears without needing to be tugged down.",
+    details: {
+      Fibre: "Handspun Merino / Tussah silk",
+      Size: 'Fits 21–23" head',
+      Gauge: "Knit on 5mm needles",
+      Note: "Knit from my own handspun, so the next one won't match",
+      Care: "Hand wash cool, dry flat",
+    },
+    image: null,
+    featured: true,
+  },
+  {
+    slug: "garter-yoke-shawl",
+    name: "Garter Yoke Shawl",
+    category: "knits",
+    priceCents: 16500,
+    stock: 1,
+    blurb: "Crescent shawl in fingering-weight handspun, blocked to a soft point.",
+    description:
+      "Around forty hours of knitting from a single skein of the Sea Glass fingering. A garter-stitch yoke opens into a lace edge, and it is blocked hard so the points hold. Big enough to wrap twice or wear open over a coat.",
+    details: {
+      Fibre: "Handspun Merino / baby alpaca / Stellina",
+      Dimensions: '68" wingspan × 22" deep, blocked',
+      Weight: "3.5 oz (100 g)",
+      Note: "One of a kind — this used the whole skein",
+      Care: "Hand wash cool, block to shape",
     },
     image: null,
   },
