@@ -40,20 +40,70 @@ CREATE TABLE IF NOT EXISTS inventory (
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 `;
 
-// Next.js reloads modules on every edit in dev. Cache the handle on globalThis
-// so we don't leak a new SQLite connection per hot reload.
-const globalForDb = globalThis as unknown as { __kkDb?: DatabaseSync };
+/**
+ * THE DATABASE IS OPTIONAL.
+ *
+ * On a host with a real disk (your laptop, Fly.io, Railway) this opens normally
+ * and everything works. On a host with a read-only filesystem — Vercel, where
+ * only /tmp is writable and it is wiped on every deploy — opening it throws.
+ *
+ * Rather than 500 every page, we degrade: reads return "nothing sold yet", so
+ * the storefront serves whatever `stock` says in products.ts. Writes throw a
+ * clear error, which is fine because checkout-mode.ts routes around them.
+ *
+ * That is what makes the catalog deployable to Vercel today. When you outgrow
+ * it, swap this file for Turso or Postgres and delete this fallback.
+ */
 
-export function db(): DatabaseSync {
+// Next.js reloads modules on every edit in dev. Cache the handle on globalThis
+// so we don't leak a new SQLite connection per hot reload. We cache the FAILURE
+// too — a box with no writable disk will never suddenly grow one, and retrying
+// on every request would mean a failed syscall per page view.
+type DbState = { handle: DatabaseSync | null };
+const globalForDb = globalThis as unknown as { __kkDb?: DbState };
+
+function state(): DbState {
   if (globalForDb.__kkDb) return globalForDb.__kkDb;
 
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-  const handle = new DatabaseSync(DB_PATH);
-  handle.exec("PRAGMA journal_mode = WAL");
-  handle.exec("PRAGMA foreign_keys = ON");
-  handle.exec(SCHEMA);
+  let handle: DatabaseSync | null = null;
+  try {
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    handle = new DatabaseSync(DB_PATH);
+    handle.exec("PRAGMA journal_mode = WAL");
+    handle.exec("PRAGMA foreign_keys = ON");
+    handle.exec(SCHEMA);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.warn(
+      `[db] No writable database at ${DB_PATH} — running in catalog-only mode. ` +
+        `Stock comes from products.ts and orders are not recorded. (${reason})`,
+    );
+    handle = null;
+  }
 
-  globalForDb.__kkDb = handle;
+  globalForDb.__kkDb = { handle };
+  return globalForDb.__kkDb;
+}
+
+/** True when orders can actually be stored. Drives checkout-mode.ts. */
+export function isDbAvailable(): boolean {
+  return state().handle !== null;
+}
+
+/** For readers, which must keep working with no database. */
+function optionalDb(): DatabaseSync | null {
+  return state().handle;
+}
+
+/** For writers, which cannot meaningfully continue without one. */
+export function db(): DatabaseSync {
+  const handle = state().handle;
+  if (!handle) {
+    throw new Error(
+      `No writable database at ${DB_PATH}. Orders cannot be recorded on this ` +
+        `host. See src/lib/checkout-mode.ts.`,
+    );
+  }
   return handle;
 }
 
@@ -73,9 +123,18 @@ function transaction<T>(fn: () => T): T {
 
 // --- inventory ---------------------------------------------------------------
 
-/** sku -> units already sold. Missing rows mean zero sold. */
+/**
+ * sku -> units already sold. Missing rows mean zero sold.
+ *
+ * With no database this returns an empty map, so the shop falls back to the
+ * `stock` numbers in products.ts. That is the correct behaviour for a
+ * catalog-only deployment: you edit `stock` and redeploy when something sells.
+ */
 export function soldCounts(): Map<string, number> {
-  const rows = db().prepare("SELECT sku, sold FROM inventory").all() as {
+  const handle = optionalDb();
+  if (!handle) return new Map();
+
+  const rows = handle.prepare("SELECT sku, sold FROM inventory").all() as {
     sku: string;
     sold: number;
   }[];
@@ -83,7 +142,10 @@ export function soldCounts(): Map<string, number> {
 }
 
 export function soldCount(sku: string): number {
-  const row = db()
+  const handle = optionalDb();
+  if (!handle) return 0;
+
+  const row = handle
     .prepare("SELECT sold FROM inventory WHERE sku = ?")
     .get(sku) as { sold: number } | undefined;
   return row ? Number(row.sold) : 0;
@@ -172,16 +234,22 @@ export function createOrder(input: {
 }
 
 export function getOrder(id: string): Order | null {
+  const handle = optionalDb();
+  if (!handle) return null;
+
   return hydrate(
-    db().prepare("SELECT * FROM orders WHERE id = ?").get(id) as
+    handle.prepare("SELECT * FROM orders WHERE id = ?").get(id) as
       | OrderRow
       | undefined,
   );
 }
 
 export function getOrderBySessionId(sessionId: string): Order | null {
+  const handle = optionalDb();
+  if (!handle) return null;
+
   return hydrate(
-    db()
+    handle
       .prepare("SELECT * FROM orders WHERE stripe_session_id = ?")
       .get(sessionId) as OrderRow | undefined,
   );
@@ -225,7 +293,10 @@ export function markOrderPaid(orderId: string, email?: string | null): boolean {
 }
 
 export function listOrders(limit = 100): Order[] {
-  const rows = db()
+  const handle = optionalDb();
+  if (!handle) return [];
+
+  const rows = handle
     .prepare("SELECT * FROM orders ORDER BY created_at DESC, id DESC LIMIT ?")
     .all(limit) as OrderRow[];
   return rows.map((r) => hydrate(r)!);

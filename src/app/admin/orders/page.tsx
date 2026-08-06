@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { timingSafeEqual } from "node:crypto";
 
-import { listOrders } from "@/lib/db";
+import { isDbAvailable, listOrders } from "@/lib/db";
 import { withStock } from "@/lib/inventory";
 import { formatCents } from "@/lib/money";
 
@@ -49,6 +49,25 @@ export default async function AdminOrdersPage({
   const { error } = await searchParams;
   const store = await cookies();
   const authed = checkPassword(store.get(COOKIE)?.value ?? "");
+
+  // No database means no orders to show and no stock to reconcile — this whole
+  // page is meaningless. Say so plainly rather than rendering an empty table
+  // that looks like "you have made no sales".
+  if (!isDbAvailable()) {
+    return (
+      <div className="mx-auto max-w-md px-5 py-20">
+        <h1 className="text-2xl">Orders</h1>
+        <p className="mt-4 text-sm text-muted">
+          This deployment has no database, so orders aren&apos;t recorded here.
+          Purchases arrive by email, and available stock is whatever{" "}
+          <code className="text-ink">src/lib/products.ts</code> says.
+        </p>
+        <p className="mt-3 text-sm text-muted">
+          Run the site locally to use this dashboard.
+        </p>
+      </div>
+    );
+  }
 
   if (!process.env.ADMIN_PASSWORD) {
     return (

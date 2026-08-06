@@ -1,7 +1,7 @@
 # Kittens Krafts
 
 A small storefront for selling handmade goods — handspun yarn, sewn bags, and
-whatever else comes off the table. Built to be maintained by one person.
+whatever else comes out of my project palace. Built to be maintained by one person [ME!].
 
 ---
 
@@ -196,12 +196,42 @@ own cookie can only change *which* items they're buying, at your prices.
 
 ---
 
+## The three checkout modes
+
+The shop detects what its environment can actually do and picks one. You do not
+configure this; see `src/lib/checkout-mode.ts`.
+
+| Mode | When | What the cart button does |
+| --- | --- | --- |
+| `stripe` | Stripe keys are set | Hosted Stripe checkout; the webhook settles the order |
+| `demo` | No Stripe, writable database | Records a fake paid order and decrements stock |
+| `enquiry` | No Stripe, **no** database | Opens a pre-filled order email to you |
+
+`enquiry` exists because a read-only host has nowhere to record an order. The
+whole browse-and-add-to-cart experience still works — the cart is a cookie and
+never touches the database.
+
+Force a mode to test it: `CHECKOUT_MODE=enquiry npm run dev`. Do this before
+deploying, or the first time you see production's code path is in production.
+
+---
+
 ## Deploying
 
-**Vercel** is the least-effort host for Next.js, but note that its filesystem is
-ephemeral — a SQLite file will be wiped on redeploy. On Vercel, swap `db.ts` for
-a hosted database (Vercel Postgres, Turso, Neon). `db.ts` is the only file that
-knows about storage.
+**Vercel** is the least-effort host for Next.js. Its filesystem is read-only
+outside `/tmp` and is wiped on every deploy, so **there is no database there**.
+`db.ts` handles this: it degrades to catalog-only rather than erroring, the shop
+runs in `enquiry` mode, and available stock is whatever `stock` says in
+`products.ts`. **When something sells you edit `stock` and redeploy.** At
+single-digit inventory that is a 30-second job and the live site has no moving
+parts.
+
+Set `NEXT_PUBLIC_SITE_URL` in the Vercel dashboard. Do *not* set
+`ADMIN_PASSWORD` — the dashboard has nothing to show without a database, and
+leaving it unset makes that page self-disable.
+
+**To take real payments** you need real persistence: swap `db.ts` for Turso or
+Neon Postgres. It is the only file that knows about storage.
 
 **To keep SQLite**, deploy to a host with a real disk — a $5 VPS, Fly.io with a
 volume, or Railway:
