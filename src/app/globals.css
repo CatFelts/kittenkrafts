@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/*
+ * ALL BRAND STYLING LIVES IN THIS BLOCK.
+ * Change a value here and it updates everywhere in the site. These names become
+ * Tailwind utilities automatically: --color-clay -> bg-clay, text-clay, etc.
+ */
+@theme {
+  --color-paper: #faf7f2; /* page background */
+  --color-ink: #241f1b; /* body text */
+  --color-muted: #6f6459; /* secondary text */
+  --color-line: #e4dcd0; /* borders and rules */
+  --color-clay: #a4553a; /* primary accent: buttons, links */
+  --color-clay-dark: #83422c; /* accent hover */
+  --color-moss: #5c6b4f; /* secondary accent: badges */
+  --color-cream: #f2ebe0; /* panels, cards */
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Visible keyboard focus everywhere, since we use a lot of plain forms. */
+:focus-visible {
+  outline: 2px solid var(--color-clay);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
