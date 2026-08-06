@@ -59,16 +59,60 @@ export type Product = {
   featured?: boolean;
 };
 
+/**
+ * ============================================================================
+ * YOUR PRODUCTS GO HERE.
+ * ============================================================================
+ *
+ * Below is ONE worked example per category. They are real, valid entries — the
+ * site runs on them right now — but they are placeholders. Replace them with
+ * your own pieces, then delete whichever examples you don't need.
+ *
+ * TO ADD A PIECE: copy an entry, paste it, edit the values. Save. In `npm run
+ * dev` it appears on the next refresh.
+ *
+ * THE ONLY FIELD THAT IS DANGEROUS TO CHANGE is `slug`. It's the URL and the
+ * primary key that sales are recorded against, so once a piece has sold, that
+ * slug is frozen. Everything else is safe to edit whenever you like.
+ *
+ * If you get a red squiggle, read it — the type on line 39 spells out exactly
+ * which fields are required, and `npm run typecheck` will list any you missed.
+ */
 export const products: Product[] = [
   {
+    // ---- EXAMPLE: handspun yarn ---------------------------------------
+    // Lowercase, hyphens, no spaces. This becomes /shop/moss-agate-worsted
+    // and is the key sales are recorded against. Freeze it after a sale.
     slug: "moss-agate-worsted",
+
+    // What the customer sees. Change this freely, even after a sale.
     name: "Moss Agate",
+
+    // Must be a key from CATEGORIES at the top of this file. Typos here are a
+    // compile error, not a broken page.
     category: "yarn",
+
+    // CENTS, always. 4800 = $48.00. Integers mean no floating-point money bugs.
     priceCents: 4800,
+
+    // How many you physically made. For a one-of-a-kind piece this is 1.
+    // You only change this if you make MORE. Sales are tracked separately and
+    // the shop displays (stock - sold), so never decrement this by hand after
+    // a sale... unless you're deployed with no database, which is the current
+    // setup — see README, "The three checkout modes".
     stock: 1,
+
+    // One line, shown on the grid tile. Gets clamped to two lines, so keep it
+    // short enough to read at a glance.
     blurb: "Worsted-weight three-ply in mossy greens and flecks of rust.",
+
+    // The full pitch, shown on the product page. Plain text, one paragraph.
+    // Say what it's made of and what it's good for.
     description:
       "Spun over a slow week from a hand-dyed Corriedale braid. The three-ply structure keeps it round and springy, so it holds stitch definition well — cables and ribbing look crisp in it. Colours drift from deep forest through olive into occasional flashes of rust, with no long stretches of any single shade.",
+
+    // Free-form spec table. The labels are yours — add, rename or drop rows to
+    // suit the piece. Yarn wants yardage; a bag wants dimensions.
     details: {
       Fibre: "100% Corriedale wool",
       Weight: "Worsted / 10 ply",
@@ -77,68 +121,21 @@ export const products: Product[] = [
       Ply: "3-ply, woollen spun",
       Care: "Hand wash cool, dry flat",
     },
+
+    // null gives you a generated colour tile derived from the slug, so the site
+    // looks finished before you've photographed anything. When you have a
+    // photo: drop it in public/images/ and write "/images/moss-agate.jpg".
     image: null,
+
+    // Optional. Puts it on the homepage. Aim for 3 or 6 featured pieces — the
+    // homepage grid is 3 across on a wide screen.
     featured: true,
   },
+
   {
-    slug: "hearth-single",
-    name: "Hearth",
-    category: "yarn",
-    priceCents: 4200,
-    stock: 1,
-    blurb: "Chunky single-ply, warm reds banking into charcoal.",
-    description:
-      "A soft, lofty single spun with a light hand so it stays airy rather than dense. Knits up fast on 8mm needles and blooms beautifully after a soak. Best for hats, cowls and anything you want to finish in a weekend.",
-    details: {
-      Fibre: "70% Merino, 30% Tussah silk",
-      Weight: "Chunky / 12 ply",
-      Yardage: "112 yd (102 m)",
-      Skein: "3.5 oz (100 g)",
-      Ply: "Single",
-      Care: "Hand wash cool, dry flat",
-    },
-    image: null,
-    featured: true,
-  },
-  {
-    slug: "sea-glass-fingering",
-    name: "Sea Glass",
-    category: "yarn",
-    priceCents: 5600,
-    stock: 1,
-    blurb: "Fingering-weight two-ply, pale aqua with a silver halo.",
-    description:
-      "The finest yarn I spin, and the slowest. A two-ply of Merino and baby alpaca with a whisper of sparkle blended through, so it catches light without looking like tinsel. Enough yardage for a generous shawl or a pair of long socks.",
-    details: {
-      Fibre: "60% Merino, 30% baby alpaca, 10% Stellina",
-      Weight: "Fingering / 4 ply",
-      Yardage: "412 yd (377 m)",
-      Skein: "3.5 oz (100 g)",
-      Ply: "2-ply, worsted spun",
-      Care: "Hand wash cool, dry flat",
-    },
-    image: null,
-  },
-  {
-    slug: "ochre-batt-dk",
-    name: "Ochre Field",
-    category: "yarn",
-    priceCents: 4400,
-    stock: 2,
-    blurb: "DK-weight two-ply from a carded batt — golds, ochre, dusty pink.",
-    description:
-      "Spun from a batt I carded myself, so the colours are properly blended rather than striped. Two skeins exist from the same batt and they match closely enough to use together for a larger project.",
-    details: {
-      Fibre: "80% Polwarth, 20% mohair",
-      Weight: "DK / 8 ply",
-      Yardage: "246 yd (225 m)",
-      Skein: "3.5 oz (100 g)",
-      Ply: "2-ply",
-      Care: "Hand wash cool, dry flat",
-    },
-    image: null,
-  },
-  {
+    // ---- EXAMPLE: a finished knit -------------------------------------
+    // Same shape, different `details` rows: a garment wants size and gauge
+    // where yarn wanted yardage.
     slug: "fishermans-rib-beanie",
     name: "Fisherman's Rib Beanie",
     category: "knits",
@@ -146,7 +143,7 @@ export const products: Product[] = [
     stock: 2,
     blurb: "Deep-ribbed beanie knit from my own handspun, with a folded brim.",
     description:
-      "Knit from a skein of the Hearth single, which means the colour shifts run around the hat rather than pooling in patches. Fisherman's rib makes a thick, squashy fabric that blocks wind properly. The brim is doubled so it sits over the ears without needing to be tugged down.",
+      "Knit from a skein of my own handspun, which means the colour shifts run around the hat rather than pooling in patches. Fisherman's rib makes a thick, squashy fabric that blocks wind properly. The brim is doubled so it sits over the ears without needing to be tugged down.",
     details: {
       Fibre: "Handspun Merino / Tussah silk",
       Size: 'Fits 21–23" head',
@@ -157,25 +154,11 @@ export const products: Product[] = [
     image: null,
     featured: true,
   },
+
   {
-    slug: "garter-yoke-shawl",
-    name: "Garter Yoke Shawl",
-    category: "knits",
-    priceCents: 16500,
-    stock: 1,
-    blurb: "Crescent shawl in fingering-weight handspun, blocked to a soft point.",
-    description:
-      "Around forty hours of knitting from a single skein of the Sea Glass fingering. A garter-stitch yoke opens into a lace edge, and it is blocked hard so the points hold. Big enough to wrap twice or wear open over a coat.",
-    details: {
-      Fibre: "Handspun Merino / baby alpaca / Stellina",
-      Dimensions: '68" wingspan × 22" deep, blocked',
-      Weight: "3.5 oz (100 g)",
-      Note: "One of a kind — this used the whole skein",
-      Care: "Hand wash cool, block to shape",
-    },
-    image: null,
-  },
-  {
+    // ---- EXAMPLE: a sewn bag ------------------------------------------
+    // Note stock: 1 with no `featured`. Not every piece needs to be on the
+    // homepage — the shop page lists everything regardless.
     slug: "market-tote-waxed",
     name: "Waxed Canvas Market Tote",
     category: "bags",
@@ -195,63 +178,8 @@ export const products: Product[] = [
     image: null,
     featured: true,
   },
-  {
-    slug: "project-bag-linen",
-    name: "Linen Project Bag",
-    category: "bags",
-    priceCents: 4600,
-    stock: 3,
-    blurb: "Drawstring bag sized for a sock or shawl project in progress.",
-    description:
-      "Made for knitting on the move. Heavy linen outer, quilting-cotton lining, and a grommet in the side seam so you can feed yarn out without opening the bag. Flat-bottomed so it sits open in your lap.",
-    details: {
-      Materials: "Washed linen, cotton lining, brass grommet",
-      Dimensions: '9" W × 11" H × 4" D',
-      Closure: "Cotton drawstring",
-      Fits: "One sock or shawl project",
-      Care: "Machine wash cold, hang dry",
-    },
-    image: null,
-  },
-  {
-    slug: "crossbody-quilted",
-    name: "Quilted Crossbody",
-    category: "bags",
-    priceCents: 12500,
-    stock: 1,
-    blurb: "Hand-quilted crossbody in indigo patchwork with an adjustable strap.",
-    description:
-      "Every panel is hand-quilted, which is why there is exactly one of these. Indigo-dyed cotton patchwork over cotton batting, bound in matching bias tape. The strap adjusts from shoulder to crossbody length and the flap closes with a hidden magnetic snap.",
-    details: {
-      Materials: "Indigo-dyed cotton, cotton batting, brass hardware",
-      Dimensions: '10" W × 7" H × 3" D',
-      Strap: 'Adjustable 24"–48"',
-      Pockets: "Two interior slip pockets",
-      Closure: "Magnetic snap under flap",
-      Care: "Spot clean only",
-    },
-    image: null,
-    featured: true,
-  },
-  {
-    slug: "notions-pouch",
-    name: "Notions Pouch",
-    category: "bags",
-    priceCents: 2800,
-    stock: 5,
-    blurb: "Small zip pouch for stitch markers, scissors and a tape measure.",
-    description:
-      "The thing I make when I have scraps left over, so no two are quite the same colourway. Boxed corners, metal zip, and a wrist loop so you can pull it out of a bigger bag one-handed.",
-    details: {
-      Materials: "Cotton canvas, cotton lining, metal zip",
-      Dimensions: '7" W × 4" H × 2" D',
-      Closure: "Metal zip with leather pull",
-      Note: "Fabric varies — yours will not match the photo exactly",
-      Care: "Machine wash cold, hang dry",
-    },
-    image: null,
-  },
 ];
+
 
 // --- lookups -----------------------------------------------------------------
 
