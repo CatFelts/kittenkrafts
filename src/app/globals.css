@@ -1,24 +1,64 @@
 @import "tailwindcss";
 
 /*
- * ALL BRAND STYLING LIVES IN THIS BLOCK.
- * Change a value here and it updates everywhere in the site. These names become
- * Tailwind utilities automatically: --color-clay -> bg-clay, text-clay, etc.
+ * ============================================================================
+ * ALL BRAND STYLING LIVES IN THIS FILE.
+ * ============================================================================
+ *
+ * Vibe: early-2000s girlweb. GeoCities, MySpace, Windows XP, glitter graphics,
+ * cheetah print. Hot pink / turquoise / lime.
+ *
+ * Every name in @theme becomes a Tailwind utility automatically:
+ *   --color-clay  ->  bg-clay, text-clay, border-clay
+ *   --color-lime  ->  bg-lime, text-lime, border-lime
+ * Change a hex here and the whole site follows.
+ *
+ * ---------------------------------------------------------------------------
+ * A NOTE ON THE TWO KINDS OF COLOUR, because this is the thing that breaks
+ * accessibility if you ignore it:
+ *
+ *   TEXT colours must stay dark enough to read. White text needs a 4.5:1
+ *   contrast ratio against its background to pass WCAG AA. Screaming hot pink
+ *   (#ff3ea5) only manages 3.24:1 with white on it — unreadable for a lot of
+ *   people, and Lighthouse will flag it. Lime is far worse: 1.34:1.
+ *
+ *   DECORATIVE colours have no such limit, because nothing small sits on them.
+ *
+ * So the palette below is split. `clay` and `moss` are the deep versions used
+ * behind white text. `shock`, `turq` and `lime` are the bright versions used
+ * for borders, tints, spots and big blocks. You get the loud look without an
+ * unreadable site. If you brighten `clay`, darken the text on it to match.
+ * ---------------------------------------------------------------------------
  */
 @theme {
-  --color-paper: #faf7f2; /* page background */
-  --color-ink: #241f1b; /* body text */
-  --color-muted: #6f6459; /* secondary text */
-  --color-line: #e4dcd0; /* borders and rules */
-  --color-clay: #a4553a; /* primary accent: buttons, links */
-  --color-clay-dark: #83422c; /* accent hover */
-  --color-moss: #5c6b4f; /* secondary accent: badges */
-  --color-cream: #f2ebe0; /* panels, cards */
+  /* --- text-safe: these sit behind white text, keep them deep ------------ */
+  /* Ratios below are measured, not guessed. If you change a hex, re-check it
+     at https://webaim.org/resources/contrastchecker/ — the whole palette is
+     one edit away from failing. */
+  --color-paper: #fff2f9; /* page background, pale pink */
+  --color-ink: #2a0a1c; /* body text, plum-black    (16.68:1 on paper) */
+  --color-muted: #8a3565; /* secondary text           ( 6.96:1 on paper) */
+  --color-clay: #d1006f; /* PRIMARY: hot pink        ( 5.33:1 vs white) */
+  --color-clay-dark: #a30057; /* primary hover            ( 7.79:1 vs white) */
+  --color-moss: #00747a; /* SECONDARY: turquoise     ( 5.56:1 vs white) */
 
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
-    serif;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  /* --- surfaces ---------------------------------------------------------- */
+  --color-line: #ffa8d8; /* borders and rules */
+  --color-cream: #ffe1f1; /* cards and panels */
+
+  /* --- decorative only: NEVER put small text on these -------------------- */
+  --color-shock: #ff3ea5; /* screaming hot pink */
+  --color-turq: #40e0d0; /* bright turquoise */
+  --color-lime: #b8f13f; /* lime green */
+  --color-chrome: #ffd9ec; /* pink-tinted window chrome */
+  --color-chrome-edge: #c2669b; /* window bevel shadow */
+
+  /* Bubblegum Sans is loaded in layout.tsx via next/font. The fallbacks are
+     period-accurate: Comic Sans MS ships on Windows and macOS. */
+  --font-display: var(--font-bubblegum), "Comic Sans MS", "Chalkboard SE",
+    cursive;
+  /* Verdana was THE 2000s web font and is on every machine — no download. */
+  --font-sans: Verdana, Tahoma, Geneva, "DejaVu Sans", sans-serif;
 }
 
 html {
@@ -36,12 +76,200 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
 }
 
 /* Visible keyboard focus everywhere, since we use a lot of plain forms. */
 :focus-visible {
-  outline: 2px solid var(--color-clay);
+  outline: 3px solid var(--color-moss);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* ==========================================================================
+   CHEETAH PRINT
+
+   TO SWAP THE ARTWORK: change --cheetah-image below. That's the only edit.
+
+   --------------------------------------------------------------------------
+   WHY THIS USES `cover` AND NOT A REPEATING TILE
+   --------------------------------------------------------------------------
+   The old version tiled a small hand-drawn SVG whose spots were built to wrap
+   across the edges. The artwork now in public/ is a traced illustration, not a
+   designed tile — its left edge doesn't line up with its right edge. Repeating
+   it will always show a seam where the pattern jumps, no matter what size you
+   set. So we don't repeat it: one copy is scaled to cover the whole element.
+   No repeats means no seams, and it makes the print as large as possible.
+
+   `cover` crops whatever doesn't fit rather than squashing it. For a texture
+   that's exactly what you want.
+
+   If you ever DO get a properly tileable file, swap the three lines marked
+   below for:
+       background-repeat: repeat;
+       background-size: 480px 240px;   <- MUST match the file's viewBox ratio
+   and delete background-position.
+
+   --------------------------------------------------------------------------
+   THE TRAP THAT CAUSED THE LINES BETWEEN REPEATS
+   --------------------------------------------------------------------------
+   An SVG carries an aspect ratio in its viewBox (hotpinkcheetah.svg is
+   632x316, so 2:1). By default it will not distort to fill a box of a
+   different shape — it scales down to FIT and leaves the leftover space
+   transparent. Setting `background-size: 300px 800px` on a 2:1 image left a
+   transparent band on every tile, and those bands read as lines in a grid.
+
+   So: any background-size you set on an SVG must match its viewBox ratio, or
+   you get gaps. `cover` and `contain` sidestep the whole problem.
+   ========================================================================== */
+.cheetah {
+  position: relative;
+  isolation: isolate;
+
+  /* The artwork. Swap this one line to change the print. */
+  --cheetah-image: url("/hotpinkcheetah.svg");
+  /* How strongly it shows through. 0 = invisible, 1 = full strength. */
+  --cheetah-opacity: 0.3;
+}
+
+.cheetah::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--color-shock);
+  background-image: var(--cheetah-image);
+  /* ---- the three lines to change if you get a tileable file ---- */
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  /* -------------------------------------------------------------- */
+  opacity: var(--cheetah-opacity);
+}
+
+/* A tamer version for large areas behind body text. */
+.cheetah-soft {
+  --cheetah-opacity: 0.12;
+}
+
+/* ==========================================================================
+   WINDOWS 98/XP WINDOW CHROME
+   Used by src/components/Window.tsx. The bevel is the classic trick: light
+   on the top/left edges, dark on the bottom/right, which fakes a light source
+   in the top-left corner and makes a flat rectangle look raised.
+   ========================================================================== */
+.win {
+  background-color: var(--color-chrome);
+  border: 2px solid;
+  border-color: #ffffff var(--color-chrome-edge) var(--color-chrome-edge)
+    #ffffff;
+  box-shadow: 3px 3px 0 0 rgba(42, 10, 28, 0.35);
+}
+
+/* The title bar. The gradient is straight out of Windows XP's Luna theme. */
+.win-bar {
+  background-image: linear-gradient(
+    180deg,
+    var(--color-shock) 0%,
+    var(--color-clay) 55%,
+    var(--color-clay-dark) 100%
+  );
+  color: #ffffff;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* The little _ □ ✕ boxes. Raised bevel, same trick inverted. */
+.win-btn {
+  background-color: var(--color-chrome);
+  border: 1px solid;
+  border-color: #ffffff var(--color-chrome-edge) var(--color-chrome-edge)
+    #ffffff;
+  color: var(--color-ink);
+}
+
+/* Inset panel — the sunken area a window's content sits in. */
+.win-inset {
+  border: 2px solid;
+  border-color: var(--color-chrome-edge) #ffffff #ffffff
+    var(--color-chrome-edge);
+}
+
+/* ==========================================================================
+   SMALL 2000s FLOURISHES
+   ========================================================================== */
+
+/* Scrolling banner. Real <marquee> is long dead; this is the CSS version. */
+.marquee {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.marquee > span {
+  display: inline-block;
+  padding-left: 100%;
+  animation: marquee 22s linear infinite;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Gentle sparkle. Deliberately NOT the old <blink> — that one actually hurt
+   people with vestibular disorders, and still does. */
+.twinkle {
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.86);
+  }
+}
+
+/*
+ * Anyone who has asked their OS for less motion gets none of it. One rule,
+ * and the animations above stop being a problem for people who get motion
+ * sick. Worth keeping if you add more movement later.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .marquee > span,
+  .twinkle {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Pink scrollbar, because of course. Chrome/Safari/Edge only; Firefox uses
+   the standard properties on <html> below. */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-clay);
+  border: 2px solid var(--color-cream);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-clay-dark);
+}
+
+html {
+  scrollbar-color: var(--color-clay) var(--color-cream);
 }

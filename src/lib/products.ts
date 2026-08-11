@@ -21,9 +21,9 @@
  *   `short` — the compact name, used in the header nav where space is tight
  */
 export const CATEGORIES = {
-  yarn: { label: "Handspun Yarn", short: "Yarn" },
-  knits: { label: "Finished Knits", short: "Knits" },
-  bags: { label: "Sewn Bags", short: "Bags" },
+  yarn: { label: "Kitten Spins", short: "Spins" },
+  knits: { label: "Kitten Knits", short: "Knits" },
+  bags: { label: "Kitten Sews", short: "Sews" },
 } as const;
 
 /**

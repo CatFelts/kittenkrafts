@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { addToCart } from "@/app/actions/cart";
+import { CursorIcon, SparkleIcon } from "@/components/Icons";
 import { ProductImage } from "@/components/Placeholder";
+import { Window } from "@/components/Window";
 import { stockFor } from "@/lib/inventory";
 import { formatCents } from "@/lib/money";
 import { CATEGORIES, getProduct } from "@/lib/products";
@@ -44,61 +46,68 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const product = stockFor(base);
 
   return (
-    <div className="mx-auto max-w-5xl px-5 py-12">
-      <Link href="/shop" className="text-sm text-muted hover:text-clay">
-        ← Back to shop
+    <div className="mx-auto max-w-5xl px-4 py-10">
+      <Link
+        href="/shop"
+        className="text-xs text-muted underline-offset-2 hover:text-clay hover:underline"
+      >
+        ← back to the shop
       </Link>
 
-      <div className="mt-6 grid gap-10 md:grid-cols-2">
-        <div className="overflow-hidden rounded-lg border border-line">
-          <ProductImage
-            src={product.image}
-            alt={product.name}
-            seed={product.slug}
-            className="aspect-square w-full"
-          />
-        </div>
+      <div className="mt-5 grid gap-8 md:grid-cols-2">
+        <Window title={`${slug.replace(/-/g, "_").slice(0, 22)}.jpg`}>
+          <div className="win-inset bg-white">
+            <ProductImage
+              src={product.image}
+              alt={product.name}
+              seed={product.slug}
+              className="aspect-square w-full"
+            />
+          </div>
+        </Window>
 
         <div>
-          <p className="text-sm uppercase tracking-[0.15em] text-muted">
+          <p className="text-[11px] uppercase tracking-[0.15em] text-muted">
             {CATEGORIES[product.category].label}
           </p>
-          <h1 className="mt-2 text-3xl">{product.name}</h1>
-          <p className="mt-3 text-2xl text-clay">
+          <h1 className="mt-1 text-3xl text-clay">{product.name}</h1>
+
+          <p className="mt-3 inline-block border-2 border-ink bg-lime px-3 py-1 text-2xl text-ink shadow-[3px_3px_0_0_var(--color-ink)]">
             {formatCents(product.priceCents)}
           </p>
 
-          <p className="mt-6 leading-relaxed text-muted">
+          <p className="mt-6 text-xs leading-relaxed text-muted">
             {product.description}
           </p>
 
-          <dl className="mt-8 divide-y divide-line border-y border-line text-sm">
+          {/* Spec table, styled as a sunken window panel. */}
+          <dl className="win-inset mt-7 divide-y-2 divide-line bg-white text-xs">
             {Object.entries(product.details).map(([label, value]) => (
-              <div key={label} className="flex justify-between gap-6 py-2.5">
+              <div key={label} className="flex justify-between gap-5 px-3 py-2">
                 <dt className="text-muted">{label}</dt>
-                <dd className="text-right">{value}</dd>
+                <dd className="text-right text-ink">{value}</dd>
               </div>
             ))}
           </dl>
 
           {error === "sold-out" && (
-            <p className="mt-6 rounded-md border border-clay/30 bg-clay/5 px-4 py-3 text-sm text-clay">
+            <p className="mt-6 border-2 border-clay bg-cream px-3 py-2.5 text-xs text-clay">
               Sorry — that one sold while you were looking at it.
             </p>
           )}
 
-          <div className="mt-8">
+          <div className="mt-7">
             {product.soldOut ? (
               <div>
-                <p className="rounded-md border border-line bg-cream px-4 py-3 text-sm text-muted">
-                  Sold out. This piece was one of a kind, but similar fibres turn
-                  up regularly.
+                <p className="win px-4 py-3 text-xs text-muted">
+                  Sold out. This piece was one of a kind, but similar fibres
+                  turn up regularly.
                 </p>
                 <a
                   href={`mailto:${site.email}?subject=${encodeURIComponent(
                     `Something like ${product.name}`,
                   )}`}
-                  className="mt-3 inline-block text-sm text-clay hover:underline"
+                  className="mt-3 inline-block text-xs text-clay underline-offset-2 hover:underline"
                 >
                   Ask me about a commission →
                 </a>
@@ -108,11 +117,13 @@ export default async function ProductPage({ params, searchParams }: Props) {
                 <input type="hidden" name="sku" value={product.slug} />
                 <button
                   type="submit"
-                  className="w-full rounded-full bg-clay px-6 py-3.5 text-white transition-colors hover:bg-clay-dark sm:w-auto sm:px-10"
+                  className="flex w-full items-center justify-center gap-2 border-2 border-ink bg-clay px-6 py-3 text-white shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:-translate-y-0.5 hover:bg-clay-dark active:translate-y-0 active:shadow-[2px_2px_0_0_var(--color-ink)] sm:w-auto sm:px-10"
                 >
+                  <CursorIcon className="h-4 w-3" />
                   Add to cart
                 </button>
-                <p className="mt-3 text-sm text-muted">
+                <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+                  <SparkleIcon className="h-3 w-3 text-shock" />
                   {product.available === 1
                     ? "Only one available."
                     : `${product.available} available.`}{" "}
