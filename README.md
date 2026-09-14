@@ -1,7 +1,7 @@
-# Kitten Krafts
+# KittensKnits
 
-A small storefront for selling handmade goods — handspun yarn, sewn bags, and
-whatever else comes out of my project palace. Built to be maintained by one person [ME!].
+A small storefront for selling handmade goods — knitten items, handspun yarn, and maybe 
+even the occassional sewn bag. Built to be maintained by one person [ME!].
 
 ---
 
@@ -243,7 +243,7 @@ deploying, or the first time you see production's code path is in production.
 ## Deploying
 
 The live site is **Netlify** (hosting) + **Neon** (Postgres) + **Cloudflare
-Registrar** (the domain `kittenkrafts.com`). That combination costs **$0/month**
+Registrar** (the domain `kittensknits.com`). That combination costs **$0/month**
 — only the domain has a price, about $11/year — and Stripe charges nothing
 monthly, only 2.9% + 30¢ when a sale actually happens. Nothing here bills you
 for a quiet month.
@@ -269,7 +269,7 @@ dropped, so it cannot destroy order history.
 
 ### 2. The domain
 
-Buy `kittenkrafts.com` at <https://domains.cloudflare.com>. Cloudflare sells at
+Buy `kittensknits.com` at <https://domains.cloudflare.com>. Cloudflare sells at
 wholesale with no markup and includes WHOIS privacy free, which most registrars
 charge $8–15/year for. Registering moves DNS to Cloudflare; you point it at
 Netlify in step 5.
@@ -287,7 +287,7 @@ Netlify → **Site configuration** → **Environment variables**:
 | Variable | Value |
 | --- | --- |
 | `DATABASE_URL` | the Neon pooled connection string |
-| `NEXT_PUBLIC_SITE_URL` | `https://kittenkrafts.com` |
+| `NEXT_PUBLIC_SITE_URL` | `https://kittensknits.com` |
 | `STRIPE_SECRET_KEY` | `sk_live_...` (or `sk_test_...` while rehearsing) |
 | `STRIPE_WEBHOOK_SECRET` | from step 6 — add it after creating the endpoint |
 | `ADMIN_PASSWORD` | something long and private |
@@ -298,7 +298,7 @@ get bounced to a dead page.
 
 ### 5. Point the domain at Netlify
 
-Netlify → **Domain management** → **Add a domain** → `kittenkrafts.com`. It will
+Netlify → **Domain management** → **Add a domain** → `kittensknits.com`. It will
 show you the records to create. In the Cloudflare dashboard → **DNS**:
 
 | Type | Name | Value | Proxy |
@@ -318,7 +318,7 @@ a few minutes.
 2. Toggle out of **Test mode** and copy the live secret key into
    `STRIPE_SECRET_KEY` on Netlify.
 3. **Developers → Webhooks → Add endpoint**:
-   - URL: `https://kittenkrafts.com/api/stripe/webhook`
+   - URL: `https://kittensknits.com/api/stripe/webhook`
    - Events: `checkout.session.completed` and
      `checkout.session.async_payment_succeeded`
 4. Copy that endpoint's **signing secret** into `STRIPE_WEBHOOK_SECRET` on
@@ -395,7 +395,7 @@ Honest list, so nothing surprises you later:
 
 **`npm install` fails with EPERM on Windows.** This folder is inside OneDrive.
 Pause syncing during install, or move the project to a non-synced path like
-`C:\dev\kittenskrafts`.
+`C:\dev\kittensknits`.
 
 **Port 3000 is busy.**
 
@@ -414,7 +414,7 @@ means `STRIPE_WEBHOOK_SECRET` doesn't match the endpoint — the local CLI secre
 and the production endpoint secret are different values.
 
 **Customers land on `localhost` after paying.** `NEXT_PUBLIC_SITE_URL` is wrong
-on Netlify. It must be `https://kittenkrafts.com`. Redeploy after changing it —
+on Netlify. It must be `https://kittensknits.com`. Redeploy after changing it —
 it is baked in at build time.
 
 **The site redirects forever, or HTTPS won't issue.** Cloudflare's proxy is on
