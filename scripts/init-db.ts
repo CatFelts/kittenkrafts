@@ -16,8 +16,8 @@ const url = process.env.DATABASE_URL?.trim();
 if (!url) {
   console.error(
     "No DATABASE_URL.\n\n" +
-      "Put your Neon connection string in .env.local:\n" +
-      "  DATABASE_URL=postgresql://user:pass@host/dbname?sslmode=require\n",
+      "Copy your Neon connection string (console.neon.tech -> Connection\n" +
+      "Details -> pooled) into .env.local as DATABASE_URL, then run this again.\n",
   );
   process.exit(1);
 }
