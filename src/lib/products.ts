@@ -133,28 +133,52 @@ export const products: Product[] = [
   },
 
   {
-    // ---- EXAMPLE: a finished knit -------------------------------------
+    // ---- a finished knit -------------------------------------
     // Same shape, different `details` rows: a garment wants size and gauge
     // where yarn wanted yardage.
-    slug: "fishermans-rib-beanie",
-    name: "Fisherman's Rib Beanie",
+    slug: "bramble-berry-socks",
+    name: "Bramble Berry Socks",
     category: "knits",
-    priceCents: 5400,
-    stock: 2,
-    blurb: "Deep-ribbed beanie knit from my own handspun, with a folded brim.",
+    priceCents: 3800,
+    stock: 1,
+    blurb: "Knit on my flatbed knitting machine",
     description:
-      "Knit from a skein of my own handspun, which means the colour shifts run around the hat rather than pooling in patches. Fisherman's rib makes a thick, squashy fabric that blocks wind properly. The brim is doubled so it sits over the ears without needing to be tugged down.",
+      "Knit flat on my Brother kh-950i knitting machine, then grafted and seamed by hand. Knit in a classic superwash merino/nylon sock blend, these socks can be machine washed and won't shrink.",
     details: {
-      Fibre: "Handspun Merino / Tussah silk",
-      Size: 'Fits 21–23" head',
-      Gauge: "Knit on 5mm needles",
-      Note: "Knit from my own handspun, so the next one won't match",
+      Fibre: "75% Fine Superwash Merino Wool, 25% Nylon",
+      Size: 'Fits 5W, or Big Kid\'s size 3.5Y',
+      Gauge: "Standard 3.5mm gauge",
+      Note: "I offer free sock darning on all my socks for life!",
+      Care: "Hand or machine wash cool, dry flat or tumble dry low",
+    },
+    image: "/images/bramble-berry-socks.jpg",
+    featured: true,
+  },
+  
+    {
+    // ---- a finished knit -------------------------------------
+    // Same shape, different `details` rows: a garment wants size and gauge
+    // where yarn wanted yardage.
+    slug: "popsicle-socks",
+    name: "Popsicle Socks",
+    category: "knits",
+    priceCents: 3800,
+    stock: 1,
+    blurb: "Knit on my flatbed knitting machine",
+    description:
+      "Knit flat on my Brother kh-950i knitting machine, then grafted and seamed by hand. Knit with a colorful self striping yarn, alternating between solid rows of color, and rows of speckles. Heels and toes are reinforced with a superwash merino/nylon blend.",
+    details: {
+      Fibre: "Sock body - Merino Wool, Heels+Toes - 75% Superwash Merino, 25% Nylon",
+      Size: 'Fits 5W, or Big Kid\'s size 3.5Y',
+      Gauge: "Standard 3.5mm gauge",
+      Note: "I offer free sock darning on all my socks for life!",
       Care: "Hand wash cool, dry flat",
     },
-    image: null,
+    image: "/images/popsicle-socks.jpg",
     featured: true,
   },
 
+  /*
   {
     // ---- EXAMPLE: a sewn bag ------------------------------------------
     // Note stock: 1 with no `featured`. Not every piece needs to be on the
@@ -178,6 +202,7 @@ export const products: Product[] = [
     image: null,
     featured: true,
   },
+  */
 ];
 
 
