@@ -1,7 +1,7 @@
 /** Shop-wide copy. Edit here rather than hunting through components. */
 export const site = {
   name: "KittensKnits",
-  tagline: "handspun yarn ⋆ knits ⋆ bags — made one at a time",
+  tagline: "handspun yarn ⋆ knits ⋆ made one at a time",
   /**
    * This is the buy button. With no database in production the cart hands the
    * customer a pre-filled email to this address, so if it's wrong, orders go

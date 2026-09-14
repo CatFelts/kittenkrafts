@@ -26,10 +26,13 @@ export default function AboutPage() {
           </p>
           <p>
             Handspun yarn is not perfectly machine uniform, and that is the point —
-            Thick and thin in spots, and sometimes unpredicted color shifts.
+            Thick and thin in spots, unpredicted color shifts, every skein tells its own story.
             I try my best to create yarn I would love to use myself! But if you need an exact match
             for a large project, email me before you order and I&apos;ll tell
             you honestly whether I can spin enough.
+          </p>
+          <p>
+            I believe handknits deserve to be worn, so all my knitted garments include free darning and repairs for life. &hearts;
           </p>
           <p>
             Commissions are open in limited numbers. If something in the shop

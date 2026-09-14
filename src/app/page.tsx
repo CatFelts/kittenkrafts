@@ -22,9 +22,8 @@ export default async function HomePage() {
         aria-hidden="true"
       >
         <span>
-          ⋆ welcome to {site.name} ⋆ everything here is made by hand ⋆ most
-          pieces are one of a kind ⋆ once it&apos;s gone it&apos;s gone ⋆ thanks
-          for visiting my corner of the web ⋆
+          ⋆ welcome to {site.name} ⋆ everything here is handmade by ME ⋆ most
+          pieces are one of a kind ⋆ thanks for visiting my corner of the web ⋆
         </span>
       </div>
 
@@ -40,7 +39,7 @@ export default async function HomePage() {
                   {site.tagline}
                 </h1>
                 <p className="mx-auto mt-4 max-w-lg text-xs leading-relaxed text-muted">
-                  Welcome to my krafty korner of the internet! I make things, mostly yarny things,
+                  Welcome to my yarny corner of the internet! I make things, mostly yarny things,
                   and post them here for your viewing pleasure. All items are available for 
                   purchase, too! Most of my pieces are unique and will probably not be replicated exactly,
                   but if you have any custom requests, I'm all ears.
@@ -94,12 +93,12 @@ export default async function HomePage() {
           {[
             {
               title: "Spun to order of one",
-              body: "Fibre is spun in single-skein batches. No two runs will match exactly.",
+              body: "Fiber is spun in single-skein batches. No two runs will match exactly.",
               tint: "bg-turq",
             },
             {
-              title: "Made from the heart &hearts;",
-              body: "This is my passion project, thanks for checking it out [:",
+              title: "Made from the heart",
+              body: "Every pair of socks (and all my handknit goodies) include free darning and repairs for life, because handmade knits are meant to be worn! Send it back, and I'll patch it up with the same love it was made with.",
               tint: "bg-lime",
             },
             {
