@@ -147,7 +147,7 @@ export const products: Product[] = [
     details: {
       Fibre: "75% Fine Superwash Merino Wool, 25% Nylon",
       Size: 'Fits 5W, or Big Kid\'s size 3.5Y',
-      Gauge: "Standard 3.5mm gauge",
+      Gauge: "Standard 4.5mm gauge",
       Note: "I offer free sock darning on all my socks for life!",
       Care: "Hand or machine wash cool, dry flat or tumble dry low",
     },
@@ -170,7 +170,7 @@ export const products: Product[] = [
     details: {
       Fibre: "Sock body - Merino Wool, Heels+Toes - 75% Superwash Merino, 25% Nylon",
       Size: 'Fits 5W, or Big Kid\'s size 3.5Y',
-      Gauge: "Standard 3.5mm gauge",
+      Gauge: "Standard 4.5mm gauge",
       Note: "I offer free sock darning on all my socks for life!",
       Care: "Hand wash cool, dry flat",
     },
