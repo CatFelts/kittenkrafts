@@ -1,125 +1,63 @@
 import "server-only";
 
-import fs from "node:fs";
-import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { neon } from "@neondatabase/serverless";
 
 /**
- * SQLite holds the things that CHANGE: orders, and how many of each item have
- * sold. The catalog itself lives in src/lib/products.ts, not here.
+ * Postgres (Neon) holds the things that CHANGE: orders, and how many of each
+ * item have sold. The catalog itself lives in src/lib/products.ts, not here.
  *
- * This uses `node:sqlite`, which ships INSIDE Node (>= 22.5, stable in 24).
- * That means no native module to compile — `npm install` never needs Python or
- * Visual Studio Build Tools. If you ever outgrow it, this file is the only one
- * that knows about the database; swap it for better-sqlite3 or Postgres and
- * nothing else changes.
+ * This is the ONLY file that knows about storage. It used to be SQLite on a
+ * local disk; it is now Neon because the live site runs on Netlify, whose
+ * filesystem is read-only and wiped on every deploy. If you ever move again,
+ * this file is still the only one to rewrite.
+ *
+ * The driver talks to Neon over HTTP rather than a TCP pool. That matters on a
+ * serverless host: every request may be a cold start, and there is no process
+ * sitting around to own a connection pool. One query is one HTTP round trip.
  */
 
-const DB_PATH =
-  process.env.DATABASE_PATH ?? path.join(process.cwd(), "data", "shop.db");
-
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS orders (
-  id                TEXT PRIMARY KEY,
-  status            TEXT NOT NULL,          -- 'pending' | 'paid' | 'cancelled'
-  mode              TEXT NOT NULL,          -- 'stripe' | 'demo'
-  email             TEXT,
-  total_cents       INTEGER NOT NULL,
-  currency          TEXT NOT NULL,
-  items_json        TEXT NOT NULL,          -- what was bought, at the price paid
-  stripe_session_id TEXT UNIQUE,
-  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
-  paid_at           TEXT
-);
-
-CREATE TABLE IF NOT EXISTS inventory (
-  sku  TEXT PRIMARY KEY,
-  sold INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
-`;
+const DATABASE_URL = process.env.DATABASE_URL?.trim();
 
 /**
- * THE DATABASE IS OPTIONAL.
+ * THE DATABASE IS STILL OPTIONAL.
  *
- * On a host with a real disk (your laptop, Fly.io, Railway) this opens normally
- * and everything works. On a host with a read-only filesystem — Vercel, where
- * only /tmp is writable and it is wiped on every deploy — opening it throws.
+ * With no DATABASE_URL the shop degrades to catalog-only: reads return "nothing
+ * sold yet", so the storefront serves whatever `stock` says in products.ts, and
+ * checkout-mode.ts routes the buy button to an email enquiry instead. That is
+ * what a fresh `git clone && npm run dev` gets you, with no signup required.
  *
- * Rather than 500 every page, we degrade: reads return "nothing sold yet", so
- * the storefront serves whatever `stock` says in products.ts. Writes throw a
- * clear error, which is fine because checkout-mode.ts routes around them.
- *
- * That is what makes the catalog deployable to Vercel today. When you outgrow
- * it, swap this file for Turso or Postgres and delete this fallback.
+ * Unlike the old SQLite version this is a pure env-var check, not a probe. It
+ * stays synchronous, which is why checkoutMode() can stay synchronous too.
  */
-
-// Next.js reloads modules on every edit in dev. Cache the handle on globalThis
-// so we don't leak a new SQLite connection per hot reload. We cache the FAILURE
-// too — a box with no writable disk will never suddenly grow one, and retrying
-// on every request would mean a failed syscall per page view.
-type DbState = { handle: DatabaseSync | null };
-const globalForDb = globalThis as unknown as { __kkDb?: DbState };
-
-function state(): DbState {
-  if (globalForDb.__kkDb) return globalForDb.__kkDb;
-
-  let handle: DatabaseSync | null = null;
-  try {
-    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-    handle = new DatabaseSync(DB_PATH);
-    handle.exec("PRAGMA journal_mode = WAL");
-    handle.exec("PRAGMA foreign_keys = ON");
-    handle.exec(SCHEMA);
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    console.warn(
-      `[db] No writable database at ${DB_PATH} — running in catalog-only mode. ` +
-        `Stock comes from products.ts and orders are not recorded. (${reason})`,
-    );
-    handle = null;
-  }
-
-  globalForDb.__kkDb = { handle };
-  return globalForDb.__kkDb;
+export function isDbAvailable(): boolean {
+  return Boolean(DATABASE_URL);
 }
 
-/** True when orders can actually be stored. Drives checkout-mode.ts. */
-export function isDbAvailable(): boolean {
-  return state().handle !== null;
+type Sql = ReturnType<typeof neon>;
+
+// Next.js reloads modules on every edit in dev. Cache the client on globalThis
+// so a hot reload doesn't build a new one per request.
+const globalForDb = globalThis as unknown as { __kkSql?: Sql };
+
+/** For writers, which cannot meaningfully continue without a database. */
+function db(): Sql {
+  if (!DATABASE_URL) {
+    throw new Error(
+      "No DATABASE_URL, so orders cannot be recorded on this host. " +
+        "See src/lib/checkout-mode.ts.",
+    );
+  }
+  globalForDb.__kkSql ??= neon(DATABASE_URL);
+  return globalForDb.__kkSql;
 }
 
 /** For readers, which must keep working with no database. */
-function optionalDb(): DatabaseSync | null {
-  return state().handle;
+function optionalDb(): Sql | null {
+  return DATABASE_URL ? db() : null;
 }
 
-/** For writers, which cannot meaningfully continue without one. */
-export function db(): DatabaseSync {
-  const handle = state().handle;
-  if (!handle) {
-    throw new Error(
-      `No writable database at ${DB_PATH}. Orders cannot be recorded on this ` +
-        `host. See src/lib/checkout-mode.ts.`,
-    );
-  }
-  return handle;
-}
-
-/** Run `fn` inside a transaction, rolling back if it throws. */
-function transaction<T>(fn: () => T): T {
-  const handle = db();
-  handle.exec("BEGIN");
-  try {
-    const result = fn();
-    handle.exec("COMMIT");
-    return result;
-  } catch (err) {
-    handle.exec("ROLLBACK");
-    throw err;
-  }
-}
+// The schema itself lives in src/lib/schema.ts and is applied by
+// `npm run db:init`, which runs outside Next.js.
 
 // --- inventory ---------------------------------------------------------------
 
@@ -127,28 +65,27 @@ function transaction<T>(fn: () => T): T {
  * sku -> units already sold. Missing rows mean zero sold.
  *
  * With no database this returns an empty map, so the shop falls back to the
- * `stock` numbers in products.ts. That is the correct behaviour for a
- * catalog-only deployment: you edit `stock` and redeploy when something sells.
+ * `stock` numbers in products.ts.
  */
-export function soldCounts(): Map<string, number> {
-  const handle = optionalDb();
-  if (!handle) return new Map();
+export async function soldCounts(): Promise<Map<string, number>> {
+  const sql = optionalDb();
+  if (!sql) return new Map();
 
-  const rows = handle.prepare("SELECT sku, sold FROM inventory").all() as {
+  const rows = (await sql`SELECT sku, sold FROM inventory`) as {
     sku: string;
     sold: number;
   }[];
   return new Map(rows.map((r) => [r.sku, Number(r.sold)]));
 }
 
-export function soldCount(sku: string): number {
-  const handle = optionalDb();
-  if (!handle) return 0;
+export async function soldCount(sku: string): Promise<number> {
+  const sql = optionalDb();
+  if (!sql) return 0;
 
-  const row = handle
-    .prepare("SELECT sold FROM inventory WHERE sku = ?")
-    .get(sku) as { sold: number } | undefined;
-  return row ? Number(row.sold) : 0;
+  const rows = (await sql`SELECT sold FROM inventory WHERE sku = ${sku}`) as {
+    sold: number;
+  }[];
+  return rows.length > 0 ? Number(rows[0].sold) : 0;
 }
 
 // --- orders ------------------------------------------------------------------
@@ -167,10 +104,12 @@ type OrderRow = {
   email: string | null;
   total_cents: number;
   currency: string;
-  items_json: string;
+  // jsonb comes back already parsed; tolerate a string in case the column is
+  // ever migrated back to text.
+  items_json: OrderItem[] | string;
   stripe_session_id: string | null;
-  created_at: string;
-  paid_at: string | null;
+  created_at: Date | string;
+  paid_at: Date | string | null;
 };
 
 export type Order = {
@@ -186,6 +125,18 @@ export type Order = {
   items: OrderItem[];
 };
 
+/**
+ * Postgres hands back a Date for timestamptz. Render it the way the old SQLite
+ * `datetime('now')` did — "2026-09-14 12:34:56", UTC — so the admin table reads
+ * the same as it always has.
+ */
+function stamp(value: Date | string | null): string | null {
+  if (value === null) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toISOString().replace("T", " ").slice(0, 19);
+}
+
 function hydrate(row: OrderRow | undefined): Order | null {
   if (!row) return null;
   return {
@@ -196,13 +147,16 @@ function hydrate(row: OrderRow | undefined): Order | null {
     total_cents: Number(row.total_cents),
     currency: row.currency,
     stripe_session_id: row.stripe_session_id,
-    created_at: row.created_at,
-    paid_at: row.paid_at,
-    items: JSON.parse(row.items_json) as OrderItem[],
+    created_at: stamp(row.created_at)!,
+    paid_at: stamp(row.paid_at),
+    items:
+      typeof row.items_json === "string"
+        ? (JSON.parse(row.items_json) as OrderItem[])
+        : row.items_json,
   };
 }
 
-export function createOrder(input: {
+export async function createOrder(input: {
   id: string;
   mode: "stripe" | "demo";
   items: OrderItem[];
@@ -211,93 +165,99 @@ export function createOrder(input: {
   stripeSessionId?: string | null;
   status?: "pending" | "paid";
   email?: string | null;
-}): void {
+}): Promise<void> {
   const status = input.status ?? "pending";
-  db()
-    .prepare(
-      `INSERT INTO orders
-         (id, status, mode, email, total_cents, currency, items_json, stripe_session_id, paid_at)
-       VALUES
-         (?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'paid' THEN datetime('now') ELSE NULL END)`,
-    )
-    .run(
-      input.id,
-      status,
-      input.mode,
-      input.email ?? null,
-      input.totalCents,
-      input.currency,
-      JSON.stringify(input.items),
-      input.stripeSessionId ?? null,
-      status,
-    );
+  await db()`
+    INSERT INTO orders
+      (id, status, mode, email, total_cents, currency, items_json, stripe_session_id, paid_at)
+    VALUES
+      (${input.id}, ${status}, ${input.mode}, ${input.email ?? null},
+       ${input.totalCents}, ${input.currency},
+       ${JSON.stringify(input.items)}::jsonb, ${input.stripeSessionId ?? null},
+       CASE WHEN ${status} = 'paid' THEN now() ELSE NULL END)
+  `;
 }
 
-export function getOrder(id: string): Order | null {
-  const handle = optionalDb();
-  if (!handle) return null;
+export async function getOrder(id: string): Promise<Order | null> {
+  const sql = optionalDb();
+  if (!sql) return null;
 
-  return hydrate(
-    handle.prepare("SELECT * FROM orders WHERE id = ?").get(id) as
-      | OrderRow
-      | undefined,
-  );
+  const rows = (await sql`SELECT * FROM orders WHERE id = ${id}`) as OrderRow[];
+  return hydrate(rows[0]);
 }
 
-export function getOrderBySessionId(sessionId: string): Order | null {
-  const handle = optionalDb();
-  if (!handle) return null;
+export async function getOrderBySessionId(
+  sessionId: string,
+): Promise<Order | null> {
+  const sql = optionalDb();
+  if (!sql) return null;
 
-  return hydrate(
-    handle
-      .prepare("SELECT * FROM orders WHERE stripe_session_id = ?")
-      .get(sessionId) as OrderRow | undefined,
-  );
+  const rows = (await sql`
+    SELECT * FROM orders WHERE stripe_session_id = ${sessionId}
+  `) as OrderRow[];
+  return hydrate(rows[0]);
 }
 
 /**
- * Mark an order paid and decrement inventory, in one transaction.
+ * Mark an order paid and decrement inventory.
  *
- * Idempotent: Stripe retries webhooks, and a retry must not sell the same skein
- * twice. Orders already 'paid' are a no-op. Returns true if this call is the
+ * Idempotent: Stripe retries webhooks, and the post-payment redirect races the
+ * webhook, so this can genuinely be called twice at once for the same order. A
+ * retry must not sell the same skein twice. Returns true if this call is the
  * one that applied the change.
+ *
+ * It is a SINGLE statement on purpose. The HTTP driver has no interactive
+ * transactions — it cannot hold one open across a read, a decision, and a
+ * write — so the read-then-write is expressed as one chain of CTEs, which
+ * Postgres runs atomically:
+ *
+ *   claimed  flips the row to 'paid' ONLY IF it is not already paid, and
+ *            returns what it bought. `WHERE status <> 'paid'` is what makes
+ *            this safe: the loser of a concurrent double-fire updates no rows,
+ *            gets no items back, and therefore bumps no stock.
+ *   items    explodes that order's line items into rows.
+ *   bumped   adds them to the sold counts.
+ *
+ * Because `bumped` reads from `claimed`, stock can only ever move for the call
+ * that actually won the flip. No partial application, no double decrement.
  */
-export function markOrderPaid(orderId: string, email?: string | null): boolean {
-  return transaction(() => {
-    const row = db()
-      .prepare("SELECT status, items_json FROM orders WHERE id = ?")
-      .get(orderId) as { status: string; items_json: string } | undefined;
+export async function markOrderPaid(
+  orderId: string,
+  email?: string | null,
+): Promise<boolean> {
+  const rows = (await db()`
+    WITH claimed AS (
+      UPDATE orders
+         SET status  = 'paid',
+             paid_at = now(),
+             email   = COALESCE(${email ?? null}, email)
+       WHERE id = ${orderId}
+         AND status <> 'paid'
+      RETURNING id, items_json
+    ),
+    items AS (
+      SELECT item->>'sku' AS sku, (item->>'qty')::int AS qty
+        FROM claimed,
+             LATERAL jsonb_array_elements(claimed.items_json) AS item
+    ),
+    bumped AS (
+      INSERT INTO inventory (sku, sold)
+      SELECT sku, SUM(qty)::int FROM items GROUP BY sku
+      ON CONFLICT (sku) DO UPDATE SET sold = inventory.sold + EXCLUDED.sold
+      RETURNING sku
+    )
+    SELECT count(*)::int AS applied FROM claimed
+  `) as { applied: number }[];
 
-    if (!row) return false;
-    if (row.status === "paid") return false; // already applied
-
-    db()
-      .prepare(
-        `UPDATE orders
-            SET status = 'paid',
-                paid_at = datetime('now'),
-                email = COALESCE(?, email)
-          WHERE id = ?`,
-      )
-      .run(email ?? null, orderId);
-
-    const bump = db().prepare(
-      `INSERT INTO inventory (sku, sold) VALUES (?, ?)
-       ON CONFLICT(sku) DO UPDATE SET sold = sold + excluded.sold`,
-    );
-    for (const item of JSON.parse(row.items_json) as OrderItem[]) {
-      bump.run(item.sku, item.qty);
-    }
-    return true;
-  });
+  return (rows[0]?.applied ?? 0) > 0;
 }
 
-export function listOrders(limit = 100): Order[] {
-  const handle = optionalDb();
-  if (!handle) return [];
+export async function listOrders(limit = 100): Promise<Order[]> {
+  const sql = optionalDb();
+  if (!sql) return [];
 
-  const rows = handle
-    .prepare("SELECT * FROM orders ORDER BY created_at DESC, id DESC LIMIT ?")
-    .all(limit) as OrderRow[];
+  const rows = (await sql`
+    SELECT * FROM orders ORDER BY created_at DESC, id DESC LIMIT ${limit}
+  `) as OrderRow[];
   return rows.map((r) => hydrate(r)!);
 }

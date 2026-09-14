@@ -36,7 +36,7 @@ export default async function ShopPage({
   const active = isCategory(category) ? category : undefined;
 
   // Sort so sold-out pieces sink to the bottom.
-  const items = withStock(listProducts(active)).sort(
+  const items = (await withStock(listProducts(active))).sort(
     (a, b) => Number(a.soldOut) - Number(b.soldOut),
   );
 

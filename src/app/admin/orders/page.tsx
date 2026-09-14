@@ -106,8 +106,8 @@ export default async function AdminOrdersPage({
     );
   }
 
-  const orders = listOrders();
-  const stock = withStock();
+  const orders = await listOrders();
+  const stock = await withStock();
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-12">

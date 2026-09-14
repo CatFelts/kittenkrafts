@@ -1,4 +1,4 @@
-# Kittens Krafts
+# Kitten Krafts
 
 A small storefront for selling handmade goods — handspun yarn, sewn bags, and
 whatever else comes out of my project palace. Built to be maintained by one person [ME!].
@@ -15,9 +15,12 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>. That's it — **no configuration required**. With no
-Stripe keys set, checkout runs in *demo mode*: orders are recorded and stock is
-decremented, but no money moves. You can click the entire buy flow immediately.
+Open <http://localhost:3000>. That's it — **no configuration required** to browse.
+With no `DATABASE_URL` set the shop runs in *enquiry mode*: the whole catalogue
+and cart work, and the buy button opens a pre-filled order email.
+
+To click the **full buy flow** with stock actually moving, point it at a database
+first — see [Local development against Neon](#local-development-against-neon).
 
 Requires **Node 22.5 or newer** (Node 24 LTS recommended). There are no native
 modules, so `npm install` never needs Python or a C++ compiler.
@@ -46,7 +49,7 @@ npm run typecheck
 | Mutations | **Server Actions** | A `<form action={someFunction}>` calls a server function directly. No REST endpoints, no `fetch`, no client state library, no loading spinners to wire up. |
 | Styling | Tailwind v4 | Every colour and font is declared once in `src/app/globals.css`. Change a value there, the whole site follows. |
 | Catalog | A TypeScript file | Your inventory is a handful of one-off pieces, not a database problem. `src/lib/products.ts` is typed, diffable, and greppable. No CMS to host or admin UI to build. |
-| Orders + stock | SQLite via `node:sqlite` | Built into Node. One file on disk, real SQL, zero setup, nothing to compile. |
+| Orders + stock | **Neon Postgres** | Serverless Postgres on a free tier. The live host has no writable disk, so orders must live off-box. Talks over HTTP, so there is no connection pool to manage on a serverless host. |
 | Payments | Stripe Checkout (hosted) | Stripe hosts the payment page. Card numbers never touch your server, so PCI scope stays near zero and there is no payment form to build. |
 
 **The one idea worth internalising:** there is no client/server split to keep in
@@ -62,7 +65,9 @@ src/
   lib/
     products.ts    ← THE CATALOG. Edit this to add or change what you sell.
     site.ts        ← Shop name, email, shipping blurb.
-    db.ts          ← SQLite: orders + how many of each item sold.
+    db.ts          ← Neon Postgres: orders + how many of each item sold.
+                      THE ONLY FILE THAT KNOWS ABOUT STORAGE.
+    schema.ts      ← The table definitions, applied by `npm run db:init`.
     cart.ts        ← Cart, stored in a cookie.
     inventory.ts   ← Joins the catalog against what's sold.
     money.ts       ← Cents → "$48.00".
@@ -79,8 +84,9 @@ src/
     api/stripe/webhook/route.ts  Stripe webhook — the authority on "paid"
     actions/cart.ts              add / update / remove
     actions/checkout.ts          cart → order
-  components/                    Header, Footer, ProductCard, image placeholder
-data/shop.db                     Created on first run. Gitignored.
+  components/                    Header, Footer, ProductCard, Window (the
+                                 retro chrome), Icons, image placeholder
+scripts/init-db.ts               Creates the tables. `npm run db:init`.
 ```
 
 ---
@@ -93,7 +99,7 @@ Open `src/lib/products.ts` and append to the `products` array:
 {
   slug: "storm-cloud-dk",        // URL + primary key. Never change after a sale.
   name: "Storm Cloud",
-  category: "yarn",              // "yarn" | "bags"
+  category: "yarn",              // a key from CATEGORIES — see below
   priceCents: 5200,              // $52.00 — cents, so no float bugs
   stock: 1,                      // how many exist. One-of-a-kind = 1
   blurb: "DK two-ply in slate and pewter.",
@@ -117,9 +123,22 @@ about 1200×1200 work best.
 **Stock:** you only ever edit `stock` if you physically make more. Sales are
 tracked separately in the database, and the shop displays `stock − sold`.
 
-**Categories:** to add a third (say, "prints"), add it to the `Category` union
-and `CATEGORY_LABELS` in `products.ts`, then add a filter entry in
-`src/app/shop/page.tsx`. Two small edits; TypeScript will point at both.
+**Categories:** these live in one place — the `CATEGORIES` object at the top of
+`products.ts`. There are three right now:
+
+```ts
+export const CATEGORIES = {
+  yarn:  { label: "Kitten Spins", short: "Spins" },
+  knits: { label: "Kitten Knits", short: "Knits" },
+  bags:  { label: "Kitten Sews",  short: "Sews"  },
+} as const;
+```
+
+`label` is the full name used for page headings and filter chips; `short` is the
+compact one used in the header nav. To add a fourth (say, "prints"), add a line
+there and you're done — the shop filters, the header nav, and the label on each
+product page all read from this object. The `Category` type is derived from it,
+so `category: "prints"` on a product is a compile error until the key exists.
 
 ---
 
@@ -177,8 +196,12 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 5. Restart `npm run dev`. The checkout button now says "Checkout with Stripe".
    Pay with test card `4242 4242 4242 4242`, any future expiry, any CVC.
 
-Go live by swapping the test keys for live ones and pointing a real webhook
-endpoint at `https://yourdomain.com/api/stripe/webhook`.
+Stripe needs **both** keys and a database: it writes a `pending` order before
+handing the customer over, and the webhook finds that row again to mark it paid.
+Keys with no `DATABASE_URL` deliberately falls back to enquiry mode rather than
+taking money it cannot record.
+
+Going live is step 6 of [Deploying](#deploying).
 
 ### How payment actually settles
 
@@ -203,13 +226,14 @@ configure this; see `src/lib/checkout-mode.ts`.
 
 | Mode | When | What the cart button does |
 | --- | --- | --- |
-| `stripe` | Stripe keys are set | Hosted Stripe checkout; the webhook settles the order |
-| `demo` | No Stripe, writable database | Records a fake paid order and decrements stock |
-| `enquiry` | No Stripe, **no** database | Opens a pre-filled order email to you |
+| `stripe` | Stripe keys **and** `DATABASE_URL` set | Hosted Stripe checkout; the webhook settles the order |
+| `demo` | `DATABASE_URL`, no Stripe | Records a fake paid order and decrements stock |
+| `enquiry` | No `DATABASE_URL` | Opens a pre-filled order email to you |
 
-`enquiry` exists because a read-only host has nowhere to record an order. The
-whole browse-and-add-to-cart experience still works — the cart is a cookie and
-never touches the database.
+`enquiry` is the safety net: with nowhere to record an order, the shop refuses to
+take money rather than charging a card it cannot reconcile. The whole
+browse-and-add-to-cart experience still works — the cart is a cookie and never
+touches the database.
 
 Force a mode to test it: `CHECKOUT_MODE=enquiry npm run dev`. Do this before
 deploying, or the first time you see production's code path is in production.
@@ -218,34 +242,128 @@ deploying, or the first time you see production's code path is in production.
 
 ## Deploying
 
-**Vercel** is the least-effort host for Next.js. Its filesystem is read-only
-outside `/tmp` and is wiped on every deploy, so **there is no database there**.
-`db.ts` handles this: it degrades to catalog-only rather than erroring, the shop
-runs in `enquiry` mode, and available stock is whatever `stock` says in
-`products.ts`. **When something sells you edit `stock` and redeploy.** At
-single-digit inventory that is a 30-second job and the live site has no moving
-parts.
+The live site is **Netlify** (hosting) + **Neon** (Postgres) + **Cloudflare
+Registrar** (the domain `kittenkrafts.com`). That combination costs **$0/month**
+— only the domain has a price, about $11/year — and Stripe charges nothing
+monthly, only 2.9% + 30¢ when a sale actually happens. Nothing here bills you
+for a quiet month.
 
-Set `NEXT_PUBLIC_SITE_URL` in the Vercel dashboard. Do *not* set
-`ADMIN_PASSWORD` — the dashboard has nothing to show without a database, and
-leaving it unset makes that page self-disable.
+> **Why not Vercel?** Its free Hobby plan forbids commercial use — its fair-use
+> policy names "requesting or processing payment from visitors" as the exact
+> thing that requires a paid plan. A shop on Hobby is a terms violation, and Pro
+> is $20/month. Netlify's free tier permits commercial use.
 
-**To take real payments** you need real persistence: swap `db.ts` for Turso or
-Neon Postgres. It is the only file that knows about storage.
+### 1. The database
 
-**To keep SQLite**, deploy to a host with a real disk — a $5 VPS, Fly.io with a
-volume, or Railway:
-
-```bash
-npm run build
-```
+1. Sign up at <https://console.neon.tech> (free tier, no card).
+2. Create a project. Any region near your customers.
+3. **Connection Details** → copy the **pooled** connection string.
+4. Put it in `.env.local` as `DATABASE_URL=...`, then create the tables:
 
 ```bash
-npm run start
+npm run db:init
 ```
 
-Set `NEXT_PUBLIC_SITE_URL` to your real origin so Stripe redirects land in the
-right place. **Back up `data/shop.db`** — it's your order history.
+Safe to re-run any time — every statement is `IF NOT EXISTS` and nothing is ever
+dropped, so it cannot destroy order history.
+
+### 2. The domain
+
+Buy `kittenkrafts.com` at <https://domains.cloudflare.com>. Cloudflare sells at
+wholesale with no markup and includes WHOIS privacy free, which most registrars
+charge $8–15/year for. Registering moves DNS to Cloudflare; you point it at
+Netlify in step 5.
+
+### 3. Deploy
+
+Push to GitHub, then at <https://app.netlify.com> → **Add new site** → **Import
+an existing project** → pick the repo. `netlify.toml` already sets the build
+command and the Next.js plugin, so accept the defaults.
+
+### 4. Environment variables
+
+Netlify → **Site configuration** → **Environment variables**:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | the Neon pooled connection string |
+| `NEXT_PUBLIC_SITE_URL` | `https://kittenkrafts.com` |
+| `STRIPE_SECRET_KEY` | `sk_live_...` (or `sk_test_...` while rehearsing) |
+| `STRIPE_WEBHOOK_SECRET` | from step 6 — add it after creating the endpoint |
+| `ADMIN_PASSWORD` | something long and private |
+
+`NEXT_PUBLIC_SITE_URL` is the one people get wrong. It builds the URL Stripe
+sends customers back to, so if it still says `localhost` your paying customers
+get bounced to a dead page.
+
+### 5. Point the domain at Netlify
+
+Netlify → **Domain management** → **Add a domain** → `kittenkrafts.com`. It will
+show you the records to create. In the Cloudflare dashboard → **DNS**:
+
+| Type | Name | Value | Proxy |
+| --- | --- | --- | --- |
+| `CNAME` | `www` | `<your-site>.netlify.app` | **DNS only** |
+| `A` or `ALIAS` | `@` | whatever Netlify shows | **DNS only** |
+
+Set the proxy toggle to **DNS only** (grey cloud, not orange). Leaving
+Cloudflare's proxy on in front of Netlify causes redirect loops and breaks
+certificate issuing. Netlify then provisions HTTPS automatically, usually within
+a few minutes.
+
+### 6. Stripe, for real money
+
+1. <https://dashboard.stripe.com> → activate your account (Stripe needs your
+   real identity and bank details before it will release funds).
+2. Toggle out of **Test mode** and copy the live secret key into
+   `STRIPE_SECRET_KEY` on Netlify.
+3. **Developers → Webhooks → Add endpoint**:
+   - URL: `https://kittenkrafts.com/api/stripe/webhook`
+   - Events: `checkout.session.completed` and
+     `checkout.session.async_payment_succeeded`
+4. Copy that endpoint's **signing secret** into `STRIPE_WEBHOOK_SECRET` on
+   Netlify and redeploy.
+
+The webhook secret in production is a **different value** from the one the
+Stripe CLI prints locally. Reusing the local one means every real webhook fails
+signature checks and no order is ever marked paid.
+
+### 7. Rehearse before you announce
+
+Deploy with **test** keys first and buy something from your own live site with
+card `4242 4242 4242 4242`. Then check:
+
+- `/admin/orders` shows the order as `paid`
+- the item's stock went down
+- Stripe's dashboard shows the webhook delivering `200`
+
+Then swap in the live keys. Test and live data are separate in Stripe, so the
+rehearsal leaves no fake orders in your real books — though it does leave test
+rows in Neon, which you can delete with
+`DELETE FROM orders WHERE mode = 'demo';`.
+
+---
+
+## Local development against Neon
+
+Use a **separate Neon branch** for development so test orders never touch real
+sales. In the Neon console: **Branches → New Branch**, name it `dev`, and put
+*that* branch's connection string in `.env.local`. Branches are copy-on-write,
+so a dev branch costs essentially nothing on the free tier.
+
+```bash
+npm run db:init   # against the dev branch
+npm run dev
+```
+
+With `DATABASE_URL` set and no Stripe keys you get `demo` mode: the full buy
+flow, orders recorded, stock decremented, no money.
+
+Before every deploy, check the mode the live site will actually use:
+
+```bash
+CHECKOUT_MODE=enquiry npm run dev
+```
 
 ---
 
@@ -263,7 +381,13 @@ Honest list, so nothing surprises you later:
   it's overkill until you're actually losing sales to it.
 - **Admin auth is a shared password.** See above.
 - **No tax handling.** Stripe Tax is a config change when you need it.
-- **Single-node only** while it's on SQLite.
+- **Neon's free tier sleeps after 5 minutes idle.** The first visitor after a
+  quiet spell waits roughly half a second longer while it wakes. That trade is
+  why a quiet month costs nothing.
+- **Free-tier ceilings are real but distant:** Netlify gives 100 GB bandwidth
+  and 125k function calls a month, Neon 0.5 GB of storage. A busy month for a
+  shop this size uses a rounding error of that. Watch them only if you get
+  written up somewhere.
 
 ---
 
@@ -279,5 +403,19 @@ Pause syncing during install, or move the project to a non-synced path like
 npm run dev -- --port 3001
 ```
 
-**Stock looks wrong.** Delete `data/shop.db` to reset every sale back to zero.
-The catalog is untouched — it's just a file.
+**Stock looks wrong.** Sales live in Neon, the catalog in `products.ts`. To
+reset every sale back to zero without touching the catalog, run
+`TRUNCATE inventory;` in the Neon SQL editor — against your **dev** branch
+unless you really mean it.
+
+**An order is stuck on `pending`.** The webhook never landed. Check Stripe →
+**Developers → Webhooks** for failed deliveries. A `400` there almost always
+means `STRIPE_WEBHOOK_SECRET` doesn't match the endpoint — the local CLI secret
+and the production endpoint secret are different values.
+
+**Customers land on `localhost` after paying.** `NEXT_PUBLIC_SITE_URL` is wrong
+on Netlify. It must be `https://kittenkrafts.com`. Redeploy after changing it —
+it is baked in at build time.
+
+**The site redirects forever, or HTTPS won't issue.** Cloudflare's proxy is on
+in front of Netlify. Set those DNS records to **DNS only** (grey cloud).

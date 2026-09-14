@@ -19,6 +19,8 @@ const ERRORS: Record<string, string> = {
     "Something in your cart sold or changed. The cart below is up to date — check it, then try again.",
   cancelled: "Checkout cancelled. Your cart is still here.",
   stripe: "Could not reach the payment provider. Please try again.",
+  enquiry:
+    "This shop takes orders by email. Use the button below and I'll reply to confirm.",
 };
 
 export default async function CartPage({

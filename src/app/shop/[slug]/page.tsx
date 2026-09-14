@@ -43,7 +43,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const base = getProduct(slug);
   if (!base) notFound();
 
-  const product = stockFor(base);
+  const product = await stockFor(base);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">

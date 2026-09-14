@@ -33,8 +33,7 @@ export default function AboutPage() {
           </p>
           <p>
             Commissions are open in limited numbers. If something in the shop
-            has sold and you&apos;d like something similar, write to me and
-            describe what you were after. &hearts;
+            has sold and you&apos;d like something similar, shoot me an email and i'll see what i can do. &hearts;
           </p>
         </div>
       </Window>

@@ -13,7 +13,7 @@ export default async function SuccessPage({
   searchParams: Promise<{ order?: string }>;
 }) {
   const { order: orderId } = await searchParams;
-  const order = orderId ? getOrder(orderId) : null;
+  const order = orderId ? await getOrder(orderId) : null;
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-20 text-center">

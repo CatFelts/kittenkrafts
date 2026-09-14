@@ -1,18 +1,21 @@
 {
-  "name": "kittenskrafts",
+  "name": "kittenkrafts",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:init": "node --env-file-if-exists=.env.local scripts/init-db.ts"
   },
   "engines": {
     "node": ">=22.5.0"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "next": "^15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -20,6 +23,7 @@
     "stripe": "^17.7.0"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.13",
     "@tailwindcss/postcss": "^4.0.9",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.10",

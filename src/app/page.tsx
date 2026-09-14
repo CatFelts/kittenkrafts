@@ -10,8 +10,8 @@ import { site } from "@/lib/site";
 /** Shows live sold-out badges, so never serve from a static cache. */
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const featured = withStock(featuredProducts());
+export default async function HomePage() {
+  const featured = await withStock(featuredProducts());
 
   return (
     <>
@@ -40,9 +40,11 @@ export default function HomePage() {
                   {site.tagline}
                 </h1>
                 <p className="mx-auto mt-4 max-w-lg text-xs leading-relaxed text-muted">
-                  Every skein is spun on my wheel and every bag is cut and sewn
-                  at my table. Most pieces are one of a kind — once a listing
-                  sells, that exact colourway is gone for good.
+                  Welcome to my krafty korner of the internet! I make things, mostly yarny things,
+                  and post them here for your viewing pleasure. All items are available for 
+                  purchase, too! Most of my pieces are unique and will probably not be replicated exactly,
+                  but if you have any custom requests, I'm all ears.
+                  Thanks for visiting! xoxoxo
                 </p>
 
                 <div className="mt-7 flex flex-wrap justify-center gap-3">

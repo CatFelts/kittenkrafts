@@ -94,7 +94,9 @@ export async function clearCart(): Promise<void> {
  */
 export async function getCart(): Promise<Cart> {
   const lines = await readCartLines();
-  const stocked = new Map(withStock().map((p) => [p.slug, p]));
+  const stocked = new Map(
+    (await withStock()).map((p) => [p.slug, p]),
+  );
 
   let adjusted = false;
   const items: CartItem[] = [];

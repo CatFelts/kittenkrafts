@@ -24,7 +24,7 @@ export async function addToCart(formData: FormData): Promise<void> {
   const product = getProduct(sku);
   if (!product) return;
 
-  const { available } = stockFor(product);
+  const { available } = await stockFor(product);
   if (available < 1) {
     redirect(`/shop/${sku}?error=sold-out`);
   }
@@ -55,7 +55,7 @@ export async function setQuantity(formData: FormData): Promise<void> {
   const product = getProduct(sku);
   if (!product) return;
 
-  const { available } = stockFor(product);
+  const { available } = await stockFor(product);
   const qty = Math.max(0, Math.min(requested, available));
 
   const lines = (await readCartLines()).filter((l) => l.sku !== sku);

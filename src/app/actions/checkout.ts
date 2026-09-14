@@ -4,9 +4,10 @@ import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 
 import { clearCart, getCart } from "@/lib/cart";
+import { checkoutMode } from "@/lib/checkout-mode";
 import { createOrder, markOrderPaid, type OrderItem } from "@/lib/db";
 import { CURRENCY } from "@/lib/money";
-import { isStripeConfigured, siteUrl, stripe } from "@/lib/stripe";
+import { siteUrl, stripe } from "@/lib/stripe";
 
 function newOrderId(): string {
   return "KK-" + randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase();
@@ -15,11 +16,17 @@ function newOrderId(): string {
 /**
  * Turn the cart into an order.
  *
- * Two paths:
- *   - Stripe configured -> create a hosted Checkout Session, save the order as
- *     'pending', and hand the customer to Stripe. The webhook marks it paid.
- *   - Otherwise -> demo mode: record the order as paid immediately so the
- *     prototype is clickable end to end without any account setup.
+ * Which path runs is decided by checkoutMode(), the SAME function the cart page
+ * uses to choose which button to render. That shared source of truth matters:
+ * if this branched on `isStripeConfigured` directly it could disagree with the
+ * page — the cart could offer an email link while this tried to charge a card,
+ * or offer a card button on a host with nowhere to record the sale.
+ *
+ *   stripe   -> create a hosted Checkout Session, save the order as 'pending',
+ *               hand the customer to Stripe. The webhook marks it paid.
+ *   demo     -> record the order as paid immediately, so the prototype is
+ *               clickable end to end without any account setup.
+ *   enquiry  -> nothing to do here; the cart page renders a mailto link instead.
  *
  * Prices come from the catalog, never from the request.
  */
@@ -42,10 +49,20 @@ export async function checkout(): Promise<void> {
     unitPriceCents: i.unitPriceCents,
   }));
 
+  const mode = checkoutMode();
+
+  // No database, so no order can be recorded. The cart page renders a mailto
+  // link rather than a submit button in this mode, so getting here means a
+  // stale page or a hand-made POST. Send them back rather than throwing a 500
+  // — or worse, charging a card with nothing to reconcile it against.
+  if (mode === "enquiry") {
+    redirect("/cart?error=enquiry");
+  }
+
   const orderId = newOrderId();
 
-  if (!isStripeConfigured) {
-    createOrder({
+  if (mode === "demo") {
+    await createOrder({
       id: orderId,
       mode: "demo",
       items,
@@ -53,7 +70,7 @@ export async function checkout(): Promise<void> {
       currency: CURRENCY,
       status: "pending",
     });
-    markOrderPaid(orderId, null);
+    await markOrderPaid(orderId, null);
     await clearCart();
     redirect(`/order/success?order=${orderId}`);
   }
@@ -78,7 +95,7 @@ export async function checkout(): Promise<void> {
     client_reference_id: orderId,
   });
 
-  createOrder({
+  await createOrder({
     id: orderId,
     mode: "stripe",
     items,

@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 
   await clearCart();
 
-  const order = getOrderBySessionId(sessionId);
+  const order = await getOrderBySessionId(sessionId);
   if (!order) {
     return NextResponse.redirect(new URL("/order/success", url.origin));
   }
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     try {
       const session = await stripe().checkout.sessions.retrieve(sessionId);
       if (session.payment_status === "paid") {
-        markOrderPaid(order.id, session.customer_details?.email ?? null);
+        await markOrderPaid(order.id, session.customer_details?.email ?? null);
       }
     } catch {
       // Non-fatal: the webhook is the authority and will settle it.

@@ -80,13 +80,13 @@ export type Product = {
  */
 export const products: Product[] = [
   {
-    // ---- EXAMPLE: handspun yarn ---------------------------------------
-    // Lowercase, hyphens, no spaces. This becomes /shop/moss-agate-worsted
+    // ---- handspun yarn ------------------------------------------------
+    // Lowercase, hyphens, no spaces. This becomes /shop/cyberpunk-dk
     // and is the key sales are recorded against. Freeze it after a sale.
-    slug: "moss-agate-worsted",
+    slug: "cyberpunk-dk",
 
     // What the customer sees. Change this freely, even after a sale.
-    name: "Moss Agate",
+    name: "Cyberpunk DK",
 
     // Must be a key from CATEGORIES at the top of this file. Typos here are a
     // compile error, not a broken page.
@@ -104,28 +104,28 @@ export const products: Product[] = [
 
     // One line, shown on the grid tile. Gets clamped to two lines, so keep it
     // short enough to read at a glance.
-    blurb: "Worsted-weight three-ply in mossy greens and flecks of rust.",
+    blurb: "Two-ply fractal spun DK weight",
 
     // The full pitch, shown on the product page. Plain text, one paragraph.
     // Say what it's made of and what it's good for.
     description:
-      "Spun over a slow week from a hand-dyed Corriedale braid. The three-ply structure keeps it round and springy, so it holds stitch definition well — cables and ribbing look crisp in it. Colours drift from deep forest through olive into occasional flashes of rust, with no long stretches of any single shade.",
+      "A classic 1:2 fractal spun yarn from a super soft and bouncy blended braid of 60% Polwarth, 20% Cashmere, and 20% Tussah silk. The color changes create a somewhat self striping yarn, with lengths of barber poling as well as some color pooling. Colors shift from bright purples, vivid blues, and pops of vibrant green.",
 
     // Free-form spec table. The labels are yours — add, rename or drop rows to
     // suit the piece. Yarn wants yardage; a bag wants dimensions.
     details: {
-      Fibre: "100% Corriedale wool",
-      Weight: "Worsted / 10 ply",
-      Yardage: "218 yd (199 m)",
-      Skein: "3.9 oz (110 g)",
-      Ply: "3-ply, woollen spun",
+      Fibre: "60% Polwarth, 20% Cashmere, 20% Tussah Silk",
+      Weight: "DK",
+      Yardage: "161 yd (148 m)",
+      Skein: "1.9 oz (55 g)",
+      Ply: "2-ply, worsted spun",
       Care: "Hand wash cool, dry flat",
     },
 
-    // null gives you a generated colour tile derived from the slug, so the site
-    // looks finished before you've photographed anything. When you have a
-    // photo: drop it in public/images/ and write "/images/moss-agate.jpg".
-    image: null,
+    // A real photo from public/images/. Leave this null and you get a generated
+    // colour tile derived from the slug instead, so a piece you haven't shot yet
+    // still looks finished on the grid.
+    image: "/images/cyberpunk-yarn.jpg",
 
     // Optional. Puts it on the homepage. Aim for 3 or 6 featured pieces — the
     // homepage grid is 3 across on a wide screen.

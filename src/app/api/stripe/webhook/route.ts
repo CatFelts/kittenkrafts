@@ -44,13 +44,13 @@ export async function POST(request: Request) {
       const session = event.data.object;
       if (session.payment_status === "paid") {
         const order =
-          getOrderBySessionId(session.id) ??
+          (await getOrderBySessionId(session.id)) ??
           (session.client_reference_id
             ? { id: session.client_reference_id }
             : null);
 
         if (order) {
-          markOrderPaid(order.id, session.customer_details?.email ?? null);
+          await markOrderPaid(order.id, session.customer_details?.email ?? null);
         }
       }
       break;

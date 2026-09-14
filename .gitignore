@@ -4,7 +4,11 @@ out/
 next-env.d.ts
 *.tsbuildinfo
 
-# Local database (orders + inventory). Never commit real customer data.
+# Netlify CLI
+.netlify/
+
+# Leftovers from the old on-disk SQLite database. Orders live in Neon now;
+# these entries stay so the stale files can never be committed.
 data/*.db
 data/*.db-shm
 data/*.db-wal

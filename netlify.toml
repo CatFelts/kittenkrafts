@@ -1,0 +1,25 @@
+# Netlify build config.
+#
+# The Next.js plugin turns Server Components, Server Actions, and Route
+# Handlers into Netlify Functions. Without it you would get a static export,
+# and checkout would not run at all.
+#
+# Netlify's filesystem is read-only and wiped on every deploy, which is exactly
+# why orders live in Neon rather than on disk. See src/lib/db.ts.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Stripe signs webhooks over the RAW request body, so nothing may rewrite or
+# recompress it on the way in.
+[[headers]]
+  for = "/api/stripe/webhook"
+  [headers.values]
+    Cache-Control = "no-store"
